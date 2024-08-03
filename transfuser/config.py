@@ -49,7 +49,7 @@ class GlobalConfig:
     num_features = [32, 32]
 
     backbone = 'transFuser'
-    rgb_only = False
+    rgb_only = True
 
     # CenterNet parameters
     num_dir_bins = 12
@@ -134,7 +134,11 @@ class GlobalConfig:
 
     detailed_losses = ['loss_wp', 'loss_bev', 'loss_depth', 'loss_semantic', 'loss_center_heatmap', 'loss_wh',
                        'loss_offset', 'loss_yaw_class', 'loss_yaw_res', 'loss_velocity', 'loss_brake']
-    detailed_losses_weights = [1.0, 1.0, 1.0, 1.0, 0.2, 0.2, 0.2, 0.2, 0.2, 0.0, 0.0]
+
+    if rgb_only:
+        detailed_losses_weights = [1.0, 0.0, 1.0, 1.0, 0.0, 0.2, 0.2, 0.2, 0.2, 0.0, 0.0]
+    else:
+        detailed_losses_weights = [1.0, 1.0, 1.0, 1.0, 0.2, 0.2, 0.2, 0.2, 0.2, 0.0, 0.0]
 
     perception_output_features = 512 # Number of features outputted by the perception branch.
     bev_features_chanels = 64 # Number of channels for the BEV feature pyramid
@@ -207,7 +211,7 @@ class GlobalConfig:
     def __init__(self, root_dir='', setting='all', **kwargs):
         self.root_dir = root_dir
         if (setting == 'all'): # All towns used for training no validation data
-            self.train_towns = os.listdir(self.root_dir)[:1]
+            self.train_towns = os.listdir(self.root_dir)
             # Filter out the files
             self.train_towns = [town for town in self.train_towns if not os.path.isfile(os.path.join(self.root_dir, town))]
             self.val_towns = [self.train_towns[0]]

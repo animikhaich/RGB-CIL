@@ -328,7 +328,7 @@ class LidarCenterNetHead(BaseDenseHead, BBoxTestMixin):
             gt_ignore = gt_ignores[0][batch_id]
 
             center_x = gt_bbox[:, [0]] * width_ratio
-            center_y = gt_bbox[:, [1]] * width_ratio
+            center_y = gt_bbox[:, [1]] * height_ratio
             gt_centers = torch.cat((center_x, center_y), dim=1)
 
             for j, ct in enumerate(gt_centers):
@@ -346,8 +346,6 @@ class LidarCenterNetHead(BaseDenseHead, BBoxTestMixin):
                 
                 gen_gaussian_target(center_heatmap_target[batch_id, ind], [ctx_int, cty_int], radius)
 
-                print("ctx_int, cty_int", ctx_int, cty_int)
-                print("wh_target.shape", wh_target.shape)
                 wh_target[batch_id, 0, cty_int, ctx_int] = scale_box_w
                 wh_target[batch_id, 1, cty_int, ctx_int] = scale_box_h
                 
@@ -760,17 +758,23 @@ class LidarCenterNet(nn.Module):
         pred_wp, _, _, _, _ = self.forward_gru(fused_features, target_point)
 
         # pred topdown view
-        pred_bev = self.pred_bev(features[0])
-        pred_bev = F.interpolate(pred_bev, (self.config.bev_resolution_height, self.config.bev_resolution_width), mode='bilinear', align_corners=True)
-
-        weight = torch.from_numpy(np.array([1., 1., 3.])).to(dtype=torch.float32, device=pred_bev.device)
-        loss_bev = F.cross_entropy(pred_bev, bev, weight=weight).mean()
+        if not self.rgb_only:
+            pred_bev = self.pred_bev(features[0])
+            pred_bev = F.interpolate(pred_bev, (self.config.bev_resolution_height, self.config.bev_resolution_width), mode='bilinear', align_corners=True)
+            weight = torch.from_numpy(np.array([1., 1., 3.])).to(dtype=torch.float32, device=pred_bev.device)
+            loss_bev = F.cross_entropy(pred_bev, bev, weight=weight).mean()
 
         loss_wp = torch.mean(torch.abs(pred_wp - ego_waypoint))
-        loss.update({
-            "loss_wp": loss_wp,
-            "loss_bev": loss_bev
-        })
+        if self.rgb_only:
+            loss.update({
+                "loss_wp": loss_wp,
+                "loss_bev": torch.tensor(0.0)
+            })
+        else:
+            loss.update({
+                "loss_wp": loss_wp,
+                "loss_bev": loss_bev
+            })
 
         preds = self.head([features[0]])
 

@@ -35,6 +35,8 @@ class CARLA_Data(Dataset):
         
         self.converter = np.uint8(config.converter)
 
+        self.use_lidar = not config.rgb_only
+
         self.images = []
         self.bevs = []
         self.depths = []
@@ -155,12 +157,16 @@ class CARLA_Data(Dataset):
                 with open(str(measurements[i], encoding='utf-8'), 'r') as f1:
                     measurements_i = ujson.load(f1)
 
-                lidars_i = np.load(str(lidars[i], encoding='utf-8'), allow_pickle=True)[1]  # [...,:3] # lidar: XYZI
-                if (backbone == 'geometric_fusion'):
-                    lidars_raw_i = np.load(str(lidars[i], encoding='utf-8'), allow_pickle=True)[1][..., :3]  # lidar: XYZI
+                if self.use_lidar:
+                    lidars_i = np.load(str(lidars[i], encoding='utf-8'), allow_pickle=True)[1]  # [...,:3] # lidar: XYZI
+                    if (backbone == 'geometric_fusion'):
+                        lidars_raw_i = np.load(str(lidars[i], encoding='utf-8'), allow_pickle=True)[1][..., :3]  # lidar: XYZI
+                    else:
+                        lidars_raw_i = None
+                    lidars_i[:, 1] *= -1
                 else:
-                    lidars_raw_i = None
-                lidars_i[:, 1] *= -1
+                    # Placeholder for the LiDARs
+                    lidars_i = np.zeros((1, 4), dtype=np.float32)
 
                 images_i = cv2.imread(str(images[i], encoding='utf-8'), cv2.IMREAD_COLOR)
                 if(images_i is None):

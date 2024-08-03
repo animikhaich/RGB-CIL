@@ -117,8 +117,6 @@ class TransfuserBackbone(nn.Module):
         p4 = self.relu(self.up_conv5(self.upsample(p5)))
         p3 = self.relu(self.up_conv4(self.upsample(p4)))
         p2 = self.relu(self.up_conv3(self.upsample(p3)))
-
-        print(p2.shape, p3.shape, p4.shape, p5.shape)
         
         return p2, p3, p4, p5
 
